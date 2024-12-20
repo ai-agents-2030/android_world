@@ -122,10 +122,11 @@ def generate_seeact_prompts(
 class SeeAct(base_agent.EnvironmentInteractingAgent):
   """SeeAct agent for Android."""
 
-  def __init__(self, env: interface.AsyncEnv, name: str = "SeeAct"):
+  def __init__(self, env: interface.AsyncEnv, name: str = "SeeAct", model: str = ''):
     super().__init__(env, name)
     self._actions = []
     self.additional_guidelines = None
+    self.model = model
 
   def reset(self, go_home: bool = False) -> None:
     super().reset(go_home)
@@ -149,6 +150,10 @@ class SeeAct(base_agent.EnvironmentInteractingAgent):
         "seeact_action": None,
         "action": None,
         "action_description": None,
+        "raw_action_gen_response": None,
+        "raw_action_ground_response": None,
+        'converted_action': 'error_retry',
+        'actual_action_coordinates': None
     }
     state = self.get_post_transition_state()
     result["ui_elements"] = state.ui_elements
@@ -172,9 +177,10 @@ class SeeAct(base_agent.EnvironmentInteractingAgent):
         sys_prompt, action_gen_prompt, state.pixels
     )
     result["action_gen_payload"] = payload
-    response = seeact_utils.execute_openai_request(payload)
+    response = seeact_utils.execute_openai_request(payload, model=self.model)
     action_gen_response = response["choices"][0]["message"]["content"]
     result["action_gen_response"] = action_gen_response
+    result["raw_action_gen_response"] = response
     if verbose:
       (
           seeact_utils.display_prompt(
@@ -192,9 +198,10 @@ class SeeAct(base_agent.EnvironmentInteractingAgent):
         action_ground_prompt,
     )
     result["action_ground_payload"] = payload
-    response = seeact_utils.execute_openai_request(payload)
+    response = seeact_utils.execute_openai_request(payload, model=self.model)
     action_ground_response = response["choices"][0]["message"]["content"]
     result["action_ground_response"] = action_ground_response
+    result["raw_action_ground_response"] = response
 
     # Parse action and convert to JSONAction.
     try:
@@ -219,12 +226,13 @@ class SeeAct(base_agent.EnvironmentInteractingAgent):
       action_description = seeact_utils.generate_action_description(
           seeact_action, target_element
       )
-      actuation.execute_adb_action(
+      actual_action_coordinates = actuation.execute_adb_action(
           action,
           [e.ui_element for e in actionable_elements],
           self.env.logical_screen_size,
           self.env.base_env,
       )
+      result['actual_action_coordinates'] = actual_action_coordinates
 
     result["action_description"] = action_description
     self._actions.append(action_description)

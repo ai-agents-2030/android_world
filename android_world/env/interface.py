@@ -245,7 +245,7 @@ class AsyncAndroidEnv(AsyncEnv):
         self.display_message(action.text, header='Agent answered:')
       return
     state = self.get_state(wait_to_stabilize=False)
-    actuation.execute_adb_action(
+    return actuation.execute_adb_action(
         action,
         state.ui_elements,
         self.logical_screen_size,

@@ -70,6 +70,7 @@ def execute_adb_action(
         adb_utils.long_press(x, y, env)
     else:
       raise ValueError(f'Invalid click action: {action}')
+    return x, y
 
   elif action.action_type == 'input_text':
     text = action.text
@@ -125,6 +126,7 @@ def execute_adb_action(
         int(start_x), int(start_y), int(end_x), int(end_y)
     )
     adb_utils.issue_generic_request(command, env)
+    return int(start_x), int(start_y), int(end_x), int(end_y)
 
   elif action.action_type == 'swipe':  # Inverse of scroll.
     screen_width, screen_height = screen_size
@@ -149,6 +151,7 @@ def execute_adb_action(
         int(start_x), int(start_y), int(end_x), int(end_y), 500
     )
     adb_utils.issue_generic_request(command, env)
+    return int(start_x), int(start_y), int(end_x), int(end_y)
 
   elif action.action_type == 'open_app':
     app_name = action.app_name

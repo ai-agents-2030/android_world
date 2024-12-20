@@ -14,7 +14,7 @@
 
 """Launches the environment used in the benchmark."""
 
-import resource
+# import resource
 
 from absl import logging
 from android_world.env import adb_utils
@@ -29,9 +29,9 @@ from android_world.utils import datetime_utils
 _ANDROID_WORLD_API_LEVEL = 33
 
 
-def _get_env(console_port: int, adb_path: str) -> interface.AsyncEnv:
+def _get_env(console_port: int, adb_path: str, grpc_port: int = 8554, device_serial:str = None) -> interface.AsyncEnv:
   """Creates an AsyncEnv by connecting to an existing Android environment."""
-  wrapped = ui_tree_wrapper.get_wrapped(console_port, adb_path)
+  wrapped = ui_tree_wrapper.get_wrapped(console_port, adb_path, grpc_port, device_serial)
   return interface.AsyncAndroidEnv(wrapped)
 
 
@@ -57,19 +57,20 @@ def _increase_file_descriptor_limit(limit: int = 32768):
       experimentally to not raise too many open files error.
   """
   try:
-    _, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
-    if limit > hard:
-      logging.warning(
-          (
-              "Requested limit %d exceeds the system's hard limit %d. Setting"
-              ' to the maximum allowed value.'
-          ),
-          limit,
-          hard,
-      )
-      limit = hard
-    resource.setrlimit(resource.RLIMIT_NOFILE, (limit, hard))
-    logging.info('File descriptor limit set to %d.', limit)
+    pass
+    # _, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+    # if limit > hard:
+    #   logging.warning(
+    #       (
+    #           "Requested limit %d exceeds the system's hard limit %d. Setting"
+    #           ' to the maximum allowed value.'
+    #       ),
+    #       limit,
+    #       hard,
+    #   )
+    #   limit = hard
+    # resource.setrlimit(resource.RLIMIT_NOFILE, (limit, hard))
+    # logging.info('File descriptor limit set to %d.', limit)
   except ValueError as e:
     logging.exception('Failed to set file descriptor limit: %s', e)
 
@@ -79,6 +80,8 @@ def load_and_setup_env(
     emulator_setup: bool = False,
     freeze_datetime: bool = True,
     adb_path: str = ui_tree_wrapper.DEFAULT_ADB_PATH,
+    grpc_port: int = 8554,
+    device_serial: str = None
 ) -> interface.AsyncEnv:
   """Create environment with `get_env()` and perform env setup and validation.
 
@@ -102,7 +105,7 @@ def load_and_setup_env(
     An interactable Android environment.
   """
   _increase_file_descriptor_limit()
-  env = _get_env(console_port, adb_path)
+  env = _get_env(console_port, adb_path, grpc_port, device_serial)
   if emulator_setup:
     setup.setup_apps(env.base_env)
   if freeze_datetime:

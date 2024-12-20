@@ -411,9 +411,9 @@ def _adb_text_format(text: str) -> str:
   ]
   for char in to_escape:
     text = text.replace(char, '\\' + char)
-  normalized_text = unicodedata.normalize('NFKD', text)
-  return normalized_text.encode('ascii', 'ignore').decode('ascii')
-
+  # normalized_text = unicodedata.normalize('NFKD', text)
+  # return normalized_text.encode('ascii', 'ignore').decode('ascii')
+  return text
 
 def _split_words_and_newlines(text: str) -> Iterable[str]:
   """Split lines of text into individual words and newline chars."""
@@ -454,15 +454,38 @@ def type_text(
       continue
     formatted = _adb_text_format(word)
     logging.info('Attempting to type word: %r', formatted)
-    response = env.execute_adb_call(
-        adb_pb2.AdbRequest(
-            input_text=adb_pb2.AdbRequest.InputText(text=formatted),
-            timeout_sec=timeout_sec,
-        )
-    )
-
-    if response.status != adb_pb2.AdbResponse.Status.OK:
-      logging.error('Failed to type word: %r', formatted)
+    # response = env.execute_adb_call(
+    #     adb_pb2.AdbRequest(
+    #         input_text=adb_pb2.AdbRequest.InputText(text=formatted),
+    #         timeout_sec=timeout_sec,
+    #     )
+    # )
+    #
+    # if response.status != adb_pb2.AdbResponse.Status.OK:
+    #   logging.error('Failed to type word: %r', formatted)
+    text = word.replace("\\n", "_").replace("\n", "_").replace('%s', ' ')
+    for char in text:
+        if 'a' <= char <= 'z' or 'A' <= char <= 'Z' or char.isdigit() or char in '-.,!?@\'°/:;()':
+            response = env.execute_adb_call(
+                adb_pb2.AdbRequest(
+                    input_text=adb_pb2.AdbRequest.InputText(text=char),
+                    timeout_sec=timeout_sec,
+                )
+            )
+        elif char == ' ':
+            response = env.execute_adb_call(
+                adb_pb2.AdbRequest(
+                    input_text=adb_pb2.AdbRequest.InputText(text='%s'),
+                    timeout_sec=timeout_sec,
+                )
+            )
+        else:
+            response = issue_generic_request(
+              ['shell', 'am', 'broadcast','-a', 'ADB_INPUT_TEXT', '--es', 'msg', f"\"{char}\""],
+              env,
+              timeout_sec,
+            )
+  return response
 
 
 def issue_generic_request(

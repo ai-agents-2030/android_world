@@ -374,6 +374,9 @@ class M3A(base_agent.EnvironmentInteractingAgent):
         'summary_prompt': None,
         'summary': None,
         'summary_raw_response': None,
+        'converted_action': 'error_retry',
+        'actual_action_coordinates': None,
+        'benchmark_screenshot': None
     }
     print('----------step ' + str(len(self.history) + 1))
 
@@ -389,6 +392,7 @@ class M3A(base_agent.EnvironmentInteractingAgent):
         before_ui_elements, logical_screen_size
     )
     step_data['raw_screenshot'] = state.pixels.copy()
+    step_data['benchmark_screenshot'] = state.pixels.copy()
     before_screenshot = state.pixels.copy()
     for index, ui_element in enumerate(before_ui_elements):
       if m3a_utils.validate_ui_element(ui_element, logical_screen_size):
@@ -449,6 +453,7 @@ class M3A(base_agent.EnvironmentInteractingAgent):
       converted_action = json_action.JSONAction(
           **agent_utils.extract_json(action),
       )
+      step_data['converted_action'] = converted_action
     except Exception as e:  # pylint: disable=broad-exception-caught
       print('Failed to convert the output to a valid action.')
       print(str(e))
@@ -458,6 +463,7 @@ class M3A(base_agent.EnvironmentInteractingAgent):
           ' correct JSON format!'
       )
       self.history.append(step_data)
+      step_data['converted_action'] = 'error_retry'
 
       return base_agent.AgentInteractionResult(
           False,
@@ -476,6 +482,7 @@ class M3A(base_agent.EnvironmentInteractingAgent):
             ' the UI element list!'
         )
         self.history.append(step_data)
+        step_data['converted_action'] = 'error_retry'
         return base_agent.AgentInteractionResult(False, step_data)
 
       # Add mark to the target element.
@@ -502,7 +509,8 @@ class M3A(base_agent.EnvironmentInteractingAgent):
       print('Agent answered with: ' + converted_action.text)
 
     try:
-      self.env.execute_action(converted_action)
+      actual_action_coordinates = self.env.execute_action(converted_action)
+      step_data['actual_action_coordinates'] = actual_action_coordinates
     except Exception as e:  # pylint: disable=broad-exception-caught
       print('Failed to execute action.')
       print(str(e))
@@ -510,6 +518,7 @@ class M3A(base_agent.EnvironmentInteractingAgent):
           'Can not execute the action, make sure to select the action with'
           ' the required parameters (if any) in the correct JSON format!'
       )
+      step_data['converted_action'] = 'error_retry'
       return base_agent.AgentInteractionResult(
           False,
           step_data,

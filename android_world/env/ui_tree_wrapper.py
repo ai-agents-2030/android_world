@@ -99,7 +99,7 @@ def get_a11y_tree(
   return forest
 
 
-_TASK_PATH = '/tmp/default.textproto'
+_TASK_PATH = 'default.textproto'
 DEFAULT_ADB_PATH = '~/Android/Sdk/platform-tools/adb'
 
 
@@ -128,13 +128,14 @@ class UITreeWrapper(base_wrapper.BaseWrapper):
   element.
   """
 
-  def __init__(self, env: env_interface.AndroidEnvInterface):
+  def __init__(self, env: env_interface.AndroidEnvInterface, using_physical_device=False):
     self._env = a11y_grpc_wrapper.A11yGrpcWrapper(
         env,
         install_a11y_forwarding=True,
         start_a11y_service=True,
         enable_a11y_tree_info=True,
         latest_a11y_info_only=True,
+        using_physical_device=using_physical_device
     )
     self._env.reset()  # Initializes required server services in a11y wrapper.
 
@@ -174,6 +175,8 @@ class UITreeWrapper(base_wrapper.BaseWrapper):
     self._env = get_wrapped(
         console_port=self.env._coordinator._simulator._config.emulator_launcher.emulator_console_port,
         adb_path=self.env._coordinator._simulator._config.adb_controller.adb_path,
+        grpc_port=self.env._coordinator._simulator._config.emulator_launcher.grpc_port,
+        device_serial=self.env._coordinator._simulator._config.adb_controller.device_name
     ).env
     # pylint: enable=protected-access
     # pytype: enable=attribute-error
@@ -207,7 +210,7 @@ max_episode_sec: 7200  # Prevent infinite episodes.
 
 
 def get_wrapped(
-    console_port: int = 5554, adb_path: str = DEFAULT_ADB_PATH
+    console_port: int = 5554, adb_path: str = DEFAULT_ADB_PATH, grpc_port: int = 8554, device_serial: str = None
 ) -> UITreeWrapper:
   """Creates a wrapper by connecting to an existing Android environment."""
 
@@ -219,11 +222,11 @@ def get_wrapped(
           emulator_launcher=config_classes.EmulatorLauncherConfig(
               emulator_console_port=console_port,
               adb_port=console_port + 1,
-              grpc_port=8554,
+              grpc_port=grpc_port,
           ),
           adb_controller=config_classes.AdbControllerConfig(adb_path=adb_path),
-      ),
+      )
   )
-  android_env_instance = loader.load(config)
+  android_env_instance = loader.load(config, device_serial)
   logging.info('Setting up UITreeWrapper.')
-  return UITreeWrapper(android_env_instance)
+  return UITreeWrapper(android_env_instance, using_physical_device=device_serial is not None and 'emulator-' not in device_serial)

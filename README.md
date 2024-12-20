@@ -1,3 +1,15 @@
+# 🌿🪑 [SPA-Bench](https://github.com/ai-agents-2030/SPA-Bench) – Major Adaptation for [AndroidWorld](https://github.com/google-research/android_world) 🔧
+
+## AndroidWorld:
+- Adaption to physical android device
+- Integration of [ADBKeyBoard](https://github.com/senzhk/ADBKeyBoard) for inputting Chinese characters.
+
+
+## M3A, T3A, SeeAct:
+- Logs of agent-executed trajectories (screenshots, actions, errors, token costs, number of steps).
+- Support for open-source models as replacements for GPT-based models.
+  
+---
 # AndroidWorld
 
 [![Unittests](https://github.com/google-research/android_world/actions/workflows/pytest.yml/badge.svg)](https://github.com/google-research/android_world/actions/workflows/pytest.yml)

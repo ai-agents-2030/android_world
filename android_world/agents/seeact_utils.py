@@ -324,7 +324,8 @@ def execute_openai_request(
   }
 
   response = requests.post(
-      "https://api.openai.com/v1/chat/completions",
+      #"https://api.openai.com/v1/chat/completions",
+      os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1") + "/chat/completions",
       headers=headers,
       json=payload,
   )
